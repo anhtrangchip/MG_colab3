@@ -66,7 +66,6 @@ class PreprocessingPipeline():
             min_encoded_length (int): Discard encoded samples containing fewer events than this number.
         """
 
-
     def run(self):
         """
         Main pipeline call...parse midis, split into test and validation sets,

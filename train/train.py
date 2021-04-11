@@ -91,7 +91,7 @@ def train(model, training_data, validation_data,
         averaged_loss = 0
         averaged_accuracy = 0
         training_batches = prepare_batches(training_data, batch_size)  # returning batches of a given size
-        for idx, batch in tqdm(enumerate(training_batches)):
+        for idx, batch in enumerate(training_batches):
 
             # skip batches that are undersized
             if len(batch[0]) != batch_size:
