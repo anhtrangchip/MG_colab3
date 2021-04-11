@@ -85,6 +85,16 @@ def train(model, training_data, validation_data,
     # minus one because input/target sequences are shifted by one char
     max_length = max((len(L)
                       for L in (training_data + validation_data))) - 1
+
+    #test save ckpt
+    if checkpoint_path is not None:
+        print("checkpoint: " + checkpoint_path)
+        try:
+            torch.save(model.state_dict(),
+                       checkpoint_path + f"_e")
+            print("Test Checkpoint saved!")
+        except:
+            print("Error: test checkpoint could not be saved...")
     for e in tqdm(range(epochs)):
         batch_start_time = time.time()
         batch_num = 1
