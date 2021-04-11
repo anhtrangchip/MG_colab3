@@ -16,6 +16,8 @@ def main():
             help="Optional path to saved model, if none provided, the model is trained from scratch.")
     parser.add_argument("--n_epochs", type=int, default=5,
             help="Number of training epochs.")
+    parser.add_argument("--ckpt_number", type=int, default=1,
+            help="version of checkpoint directory")
     args = parser.parse_args()
     
     sampling_rate = 125
@@ -42,7 +44,7 @@ def main():
     print(f"MIDI pipeline runtime: {runtime / 60 : .1f}m")
 
     today = datetime.date.today().strftime('%m%d%Y')
-    checkpoint = f"drive/MyDrive/UETK62/saved_models/tf_{today}"
+    checkpoint = f"drive/MyDrive/UETK62/saved_models{args.ckpt_number}/tf_{today}"
 
     training_sequences = pipeline.encoded_sequences['training']
     validation_sequences = pipeline.encoded_sequences['validation']
