@@ -47,11 +47,13 @@ def main():
 
     today = datetime.date.today().strftime('%m%d%Y')
     checkpoint = f"drive/MyDrive/UETK62/saved_models{args.ckpt_number}/tf_{today}"
+    print(checkpoint)
 
     training_sequences = pipeline.encoded_sequences['training']
     validation_sequences = pipeline.encoded_sequences['validation']
     
-    batch_size = 6
+    batch_size = 8
+    print("batch size: " + batch_size)
     
     train(transformer, training_sequences, validation_sequences,
                epochs = args.n_epochs, evaluate_per = 1,

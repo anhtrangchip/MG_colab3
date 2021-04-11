@@ -58,7 +58,7 @@ def train(model, training_data, validation_data,
         custom_schedule: (bool) If True, use a learning rate scheduler with a warmup ramp
         custom_loss: (bool) If True, set loss function as Cross Entropy with label smoothing
     """
-    writer = SummaryWriter('drive/MyDrive/UETK62/runs/transformers1')
+    writer = SummaryWriter('drive/MyDrive/UETK62/runs/transformers')
     training_start_time = time.time()
 
     model.train()
@@ -87,6 +87,7 @@ def train(model, training_data, validation_data,
                       for L in (training_data + validation_data))) - 1
 
     #test save ckpt
+    print("test save ckpt")
     if checkpoint_path is not None:
         print("checkpoint: " + checkpoint_path)
         try:
