@@ -58,7 +58,7 @@ def train(model, training_data, validation_data,
         custom_schedule: (bool) If True, use a learning rate scheduler with a warmup ramp
         custom_loss: (bool) If True, set loss function as Cross Entropy with label smoothing
     """
-    writer = SummaryWriter('./drive/MyDrive/UETK62/runs/transformers')
+    writer = SummaryWriter('drive/MyDrive/UETK62/runs/transformers')
     training_start_time = time.time()
 
     model.train()

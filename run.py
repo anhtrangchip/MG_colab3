@@ -32,6 +32,8 @@ def main():
         state = torch.load(args.checkpoint)
         transformer.load_state_dict(state)
         print(f"Successfully loaded checkpoint at {args.checkpoint}")
+    else:
+        print(f"NOT FOUND checkpoint")
     #rule of thumb: 1 minute is roughly 2k tokens
     
     pipeline = PreprocessingPipeline(input_dir="data", stretch_factors=[0.975, 1, 1.025],
