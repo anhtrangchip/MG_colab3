@@ -76,7 +76,7 @@ class PreprocessingPipeline():
         total_time = sum([m.get_end_time() for m in midis])
         print("\n{} midis read, or {:.1f} minutes of music"\
                 .format(len(midis), total_time/60))
-
+        print("Done MIDIS read")
         note_sequences = self.get_note_sequences(midis)
         del midis
         #vectorize note sequences

@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 import time
 from random import shuffle
-
+from tqdm import tqdm
 
 def batch_to_tensors(batch, n_tokens, max_length):
     """
@@ -85,13 +85,13 @@ def train(model, training_data, validation_data,
     # minus one because input/target sequences are shifted by one char
     max_length = max((len(L)
                       for L in (training_data + validation_data))) - 1
-    for e in range(epochs):
+    for e in tqdm(range(epochs)):
         batch_start_time = time.time()
         batch_num = 1
         averaged_loss = 0
         averaged_accuracy = 0
         training_batches = prepare_batches(training_data, batch_size)  # returning batches of a given size
-        for idx, batch in enumerate(training_batches):
+        for idx, batch in tqdm(enumerate(training_batches)):
 
             # skip batches that are undersized
             if len(batch[0]) != batch_size:
