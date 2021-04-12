@@ -9,6 +9,7 @@ from preprocess import PreprocessingPipeline
 from train import train
 from model import MusicTransformer
 import argparse
+import yaml
 
 def main():
     parser = argparse.ArgumentParser("Script to train model on a GPU")
