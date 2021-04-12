@@ -35,6 +35,11 @@ def main():
     else:
         print(f"NOT FOUND checkpoint")
     #rule of thumb: 1 minute is roughly 2k tokens
+
+    # saving the model to a YAML file
+    yaml_model = transformer.to_yaml()  # writing the yaml model to the yaml file
+    with open('musicgeneration.yaml', 'w') as yaml_file:
+        yaml_file.write(yaml_model)
     
     pipeline = PreprocessingPipeline(input_dir="data", stretch_factors=[0.975, 1, 1.025],
             split_size=30, sampling_rate=sampling_rate, n_velocity_bins=n_velocity_bins,
