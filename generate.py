@@ -14,6 +14,8 @@ def main():
 
     parser.add_argument("--model_key", type=str, 
             help="Key in saved_models/model.yaml, helps look up model arguments and path to saved checkpoint.")
+    parser.add_argument("--checkpoint", type=str,
+                        help="Optional path to saved model, if none provided, the model is trained from scratch.")
     parser.add_argument("--sample_length", type=int, default=512,
             help="number of events to generate")
     parser.add_argument("--temps", nargs="+", type=float, 
@@ -33,17 +35,35 @@ def main():
 
     model_key = args.model_key
 
-    try:
-        model_dict = yaml.safe_load(open('saved_models/model.yaml'))[model_key]
-    except:
-        raise GeneratorError(f"could not find yaml information for key {model_key}")
+    # try:
+    #     model_dict = yaml.safe_load(open('saved_models/model.yaml'))[model_key]
+    # except:
+    #     raise GeneratorError(f"could not find yaml information for key {model_key}")
+    #
+    # model_path = model_dict["path"]
+    # model_args = model_dict["args"]
+    # try:
+    #     state = torch.load(model_path)
+    # except RuntimeError:
+    #     state = torch.load(model_path, map_location="cpu")
 
-    model_path = model_dict["path"]
-    model_args = model_dict["args"]
-    try:
-        state = torch.load(model_path)
-    except RuntimeError:
-        state = torch.load(model_path, map_location="cpu")
+    # generate model
+    sampling_rate = 125
+    n_velocity_bins = 32
+    seq_length = 1024
+    n_tokens = 256 + sampling_rate + n_velocity_bins
+    model = MusicTransformer(n_tokens, seq_length,
+                                   d_model=64, n_heads=8, d_feedforward=256,
+                                   depth=4, positional_encoding=True, relative_pos=True)
+
+    # load state
+    if args.checkpoint is not None:
+        state = torch.load(args.checkpoint)
+        model.load_state_dict(state)
+        print(f"Successfully loaded checkpoint at {args.checkpoint}")
+    else:
+        print(f"NOT FOUND checkpoint")
+
     
     n_velocity_events = 32
     n_time_shift_events = 125
@@ -59,8 +79,8 @@ def main():
     else:
         prime_sequence = []
 
-    model = MusicTransformer(**model_args)
-    model.load_state_dict(state, strict=False)
+    # model = MusicTransformer(**model_args)
+    # model.load_state_dict(state, strict=False)
 
     temps = args.temps
 
@@ -76,7 +96,7 @@ def main():
         for i in range(n_trials):
             print("generating sequence")
             output_sequence = sample(model, prime_sequence = prime_sequence, sample_length=args.sample_length, temperature=temp)
-            note_sequence = decoder.decode_sequence(output_sequence, 
+            note_sequence = decoder.decode_sequence(output_sequence,
                 verbose=True, stuck_note_duration=None)
 
             output_dir = f"output/{model_key}/{trial_key}/"
