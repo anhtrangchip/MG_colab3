@@ -6,5 +6,5 @@
 #### $ python generate.py --checkpoint ./saved_models/tf_04152021_e4 --sample_length 100 --temps 4.0 --stuck_note_duration 1
 
 ## play midi
-#### $ timidity <file>
+#### $ timidity <filename
 .
