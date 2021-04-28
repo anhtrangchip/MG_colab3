@@ -24,7 +24,7 @@ class MultiheadedAttention(nn.Module):
         self.linears = torch.nn.ModuleList([nn.Linear(s, s, bias=False) for i in range(3)])
         self.recombine_heads = nn.Linear(heads * s, d_model)
         self.dropout = nn.Dropout(p=dropout)
-        self.max_length = 1024
+        self.max_length = 2048
         #relative positional embeddings
         self.relative_pos = relative_pos
         if relative_pos:
