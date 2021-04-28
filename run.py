@@ -24,7 +24,7 @@ def main():
 
     sampling_rate = 125
     n_velocity_bins = 32
-    seq_length = 1024
+    seq_length = 2048
     n_tokens = 256 + sampling_rate + n_velocity_bins
     transformer = MusicTransformer(n_tokens, seq_length,
                                    d_model=64, n_heads=8, d_feedforward=256,
@@ -55,7 +55,7 @@ def main():
     training_sequences = pipeline.encoded_sequences['training']
     validation_sequences = pipeline.encoded_sequences['validation']
 
-    batch_size = 1
+    batch_size = 16
     print("batch size: ", batch_size)
 
     train(transformer, training_sequences, validation_sequences,
