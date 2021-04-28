@@ -20,8 +20,10 @@ class PreprocessingPipeline():
     timing and/or dynamics into smaller bins.
 
     Attributes:
-        self.split_samples (dict of lists): when the pipeline is run, has two keys, "training" and "validation," each holding a list of split MIDI note sequences.
-        self.encoded_sequences (dict of lists): Keys are "training" and "validation." Each holds a list of encoded event sequences, a sparse numeric representation of a MIDI sample.
+        self.split_samples (dict of lists): when the pipeline is run, has two keys, "training" and "validation," 
+            each holding a list of split MIDI note sequences.
+        self.encoded_sequences (dict of lists): Keys are "training" and "validation." 
+            Each holds a list of encoded event sequences, a sparse numeric representation of a MIDI sample.
     """
     def __init__(self, input_dir, stretch_factors = [0.95, 0.975, 1, 1.025, 1.05],
             split_size = 30, sampling_rate = 125, n_velocity_bins = 32,
@@ -30,6 +32,7 @@ class PreprocessingPipeline():
         self.input_dir = input_dir
         self.split_samples = dict()
         self.stretch_factors = stretch_factors
+
         #size (in seconds) in which to split midi samples
         self.split_size = split_size
         #In hertz (beats per second), quantize sample timings to this discrete frequency
