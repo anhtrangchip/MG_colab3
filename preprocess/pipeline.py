@@ -10,41 +10,21 @@ class PreprocessingError(Exception):
     pass
 
 class PreprocessingPipeline():
-    #set a random seed
-    SEED = 1811
-    """
-    Pipeline to convert MIDI files to cleaned Piano Midi Note Sequences, split into 
-    a more manageable length.
-    Applies any sustain pedal activity to extend note lengths. Optionally augments
-    the data by transposing pitch and/or stretching sample speed. Optionally quantizes
-    timing and/or dynamics into smaller bins.
+    # MIDI files -> Piano Midi Note Sequences, split into a more manageable length
 
-    Attributes:
-        self.split_samples (dict of lists): when the pipeline is run, has two keys, "training" and "validation," 
-            each holding a list of split MIDI note sequences.
-        self.encoded_sequences (dict of lists): Keys are "training" and "validation." 
-            Each holds a list of encoded event sequences, a sparse numeric representation of a MIDI sample.
-    """
-    def __init__(self, input_dir, stretch_factors = [0.95, 0.975, 1, 1.025, 1.05],
+    def __init__(self, input_dir, stretch_factors = [0.95, 1],
             split_size = 30, sampling_rate = 125, n_velocity_bins = 32,
-            transpositions = range(-3,4), training_val_split = 0.9, 
+            transpositions = range(-1, 1), training_val_split = 0.9,
             max_encoded_length = 512, min_encoded_length = 33):
         self.input_dir = input_dir
         self.split_samples = dict()
         self.stretch_factors = stretch_factors
 
-        #size (in seconds) in which to split midi samples
-        self.split_size = split_size
-        #In hertz (beats per second), quantize sample timings to this discrete frequency
-        #So a sampling rate of 125 hz means a smallest time steps of 8 ms
-        self.sampling_rate = sampling_rate
-        #Quantize sample dynamics (Velocity 1-127) to a smaller number of bins
-        #this should be an *integer* dividing 128 cleanly: 2,4,8,16,32,64, or 128. 
+        self.split_size = split_size # split midi samples
+        self.sampling_rate = sampling_rate # beats per second, smallest time steps ~ 8 ms
         self.n_velocity_bins = n_velocity_bins
         self.transpositions = transpositions
-        
-        #Fraction of raw MIDI data that goes to the training set
-        #the remainder goes to validat
+
         self.training_val_split = training_val_split
 
         self.encoder = SequenceEncoder(n_time_shift_events = sampling_rate,
@@ -53,28 +33,10 @@ class PreprocessingPipeline():
                 max_events = max_encoded_length)
         self.encoded_sequences = dict()
 
-        random.seed(PreprocessingPipeline.SEED)
-
-        """
-        Args:
-            input_dir (str): path to input directory. All .midi or .mid files in this directory will get processed.
-            stretch_factors (list of float): List of constants by which note end times and start times will be multiplied. A way to augment data.
-            split_size (int): Max length, in seconds, of samples into which longer MIDI note sequences are split.
-            sampling_rate (int): How many subdivisions of 1,000 milliseconds to quantize note timings into. E.g. a sampling rate of 100 will mean end and start times are rounded to the nearest 0.01 second.
-            n_velocity_bins (int): Quantize 128 Midi velocities (amplitudes) into this many bins: e.g. 32 velocity bins mean note velocities are rounded to the nearest multiple of 4.
-            transpositions (iterator of ints): Transpose note pitches up/down by intervals (number of half steps) in this iterator. Augments a dataset with transposed copies.
-            training_val_split (float): Number between 0 and 1 defining the proportion of raw data going to the training set. The rest goes to validation.
-            max_encoded_length (int): Truncate encoded samples containing more
-            events than this number.
-            min_encoded_length (int): Discard encoded samples containing fewer events than this number.
-        """
+        random.seed(1811)
 
     def run(self):
-        """
-        Main pipeline call...parse midis, split into test and validation sets,
-        augment, quantize, sample, and encode as event sequences. 
-        """
-        midis = self.parse_files(chdir=True) 
+        midis = self.parse_files(chdir=True)  #midis -> PrettyMidi
         total_time = sum([m.get_end_time() for m in midis])
         print("\n{} midis read, or {:.1f} minutes of music"\
                 .format(len(midis), total_time/60))
@@ -94,9 +56,6 @@ class PreprocessingPipeline():
             samples = self.split_sequences(sequences)
             self.quantize(samples)
             print(f"{len(samples):,} quantized, split samples")
-            if mode == "training":
-                samples = self.transpose_samples(samples)
-                print(f"{len(samples):,} transposed samples")
             self.split_samples[mode] = samples
             self.encoded_sequences[mode] = self.encoder.encode_sequences(samples)
             print(f"Encoded {mode} sequences!\n")
@@ -131,6 +90,7 @@ class PreprocessingPipeline():
         if chdir:
             os.chdir(home_dir)
 
+
         return pretty_midis
 
     def get_note_sequences(self, midis):
@@ -145,13 +105,11 @@ class PreprocessingPipeline():
             if m.instruments[0].program == 0:
                 piano_data = m.instruments[0]
             else:
-                #todo: write logic to safely catch if there are non piano instruments,
-                #or extract the piano midi if it exists
                 raise PreprocessingError("Non-piano midi detected")
             note_sequence = self.apply_sustain(piano_data)
             note_sequence = sorted(note_sequence, key = lambda x: (x.start, x.pitch))
             note_sequences.append(note_sequence)
-
+        # all midi files are append to one note_sequences
         return note_sequences
 
 
@@ -177,22 +135,19 @@ class PreprocessingPipeline():
             sustain_position = _SUSTAIN_ON
         else:
             sustain_position = _SUSTAIN_OFF
-        #if for some reason pedal was not touched...
+        #if for some reason pedal was not touched, delete
         action_sequence = [(first_sustain_control.time, sustain_position, None)]
-        #delete this please
         cleaned_controls = []
         for c in control_changes:
-            #Ignoring the sostenuto and damper pedals due to complications
+            #Ignoring the sostenuto 66 and damper pedals 67 due to complications
             if sustain_position == _SUSTAIN_ON:
-                if c.value >= 64:
-                    #another SUSTAIN_ON
+                if c.value >= 64: #SUSTAIN_ON
                     continue
                 else:
                     sustain_position = _SUSTAIN_OFF
             else:
                 #look for the next on signal
-                if c.value < 64:
-                    #another SUSTAIN_OFF
+                if c.value < 64: #SUSTAIN_OFF
                     continue
                 else:
                     sustain_position = _SUSTAIN_ON
@@ -237,6 +192,7 @@ class PreprocessingPipeline():
                     except ValueError:
                         print("***Unexpected note sequence...possible duplicate?")
                         pass
+
         return notes
 
     def partition(self, sequences):
@@ -331,20 +287,16 @@ class PreprocessingPipeline():
             velocity_step = 0
         for sample in samples:
             sample_start_time = next((note[0] for note in sample), 0)
-            for note in sample:
-                #reshift note start and end times to begin at zero
+            for note in sample: #reshift note start and end times to begin at zero
                 note[0] -= sample_start_time
                 note[1] -= sample_start_time
-                #delete this 
+                #delete
                 if note[0] < 0 or note[1] < 0:
                     raise PreprocessingError
-                if timestep:
-                    #quantize timing
+                if timestep: #quantize timing
                     note[0] = (note[0] * self.sampling_rate) // 1 * timestep
                     note[1] = (note[1] * self.sampling_rate) // 1 * timestep
-                if velocity_step:
-                    #quantize dynamics
-                    #smallest velocity is 1 (otherwise we can't hear it!)
+                if velocity_step: #quantize dynamics, smallest velocity is 1
                     note[3] = (note[3] // velocity_step *\
                             velocity_step) + 1
 
@@ -361,8 +313,6 @@ class PreprocessingPipeline():
                 transposed_sample = np.copy(sample)
                 #shift pitches in sample by transposition
                 transposed_sample[:,2] += transposition
-                #should I adjust pitches that fall out of the range of 
-                #a piano's 88 keys? going to be pretty uncommon.
                 transposed_samples.append(transposed_sample)
 
         return transposed_samples

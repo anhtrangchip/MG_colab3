@@ -22,9 +22,7 @@ def batch_to_tensors(batch, n_tokens, max_length):
 
     for i, sequence in enumerate(input_sequences):
         seq_length = sequence_lengths[i]
-        # copy over input sequence data with zero-padding
-        # cast to long to be embedded into model's hidden dimension
-        x[i, :seq_length] = torch.Tensor(sequence).unsqueeze(0)
+        x[i, :seq_length] = torch.Tensor(sequence).unsqueeze(0) # copy over input sequence data with zero-padding
 
     x_mask = (x != 0)
     x_mask = x_mask.type(torch.uint8)
@@ -44,8 +42,6 @@ def train(model, training_data, validation_data,
           padding_index=-100, checkpoint_path=None,
           custom_schedule=False, custom_loss=False):
     """
-    Training loop function.
-    Args:
         model: MusicTransformer module
         training_data: List of encoded music sequences
         validation_data: List of encoded music sequences
@@ -82,7 +78,6 @@ def train(model, training_data, validation_data,
     training_losses = []
     validation_losses = []
     # pad to length of longest sequence
-    # minus one because input/target sequences are shifted by one char
     max_length = max((len(L)
                       for L in (training_data + validation_data))) - 1
 
@@ -111,21 +106,14 @@ def train(model, training_data, validation_data,
                                             max_length)
             y_hat = model(x, x_mask).transpose(1, 2)
 
-            # shape: (batch_size, n_tokens, seq_length)
 
             loss = loss_function(y_hat, y)
-
-            # detach hidden state from the computation graph; we don't need its gradient
-            # clear old gradients from previous step
             model.zero_grad()
-            # compute derivative of loss w/r/t parameters
             loss.backward()
-            # optimizer takes a step based on gradient
             optimizer.step()
             training_loss = loss.item()
             training_losses.append(training_loss)
             writer.add_scalar("loss/train_loss", training_loss, e * len([training_batches]) + idx)
-            # take average over subset of batch?
             averaged_loss += training_loss
             averaged_accuracy += accuracy(y_hat, y, x_mask)
             if batch_num % batches_per_print == 0:
@@ -142,7 +130,6 @@ def train(model, training_data, validation_data,
 
         if (e + 1) % evaluate_per == 0:
 
-            # deactivate backprop for evaluation
             model.eval()
             validation_batches = prepare_batches(validation_data,
                                                  batch_size)

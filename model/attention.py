@@ -8,16 +8,12 @@ class AttentionError(Exception):
     pass
 
 class MultiheadedAttention(nn.Module):
-    """
-    Narrow multiheaded attention. Each attention head inspects a 
-    fraction of the embedding space and expresses attention vectors for each sequence position as a weighted average of all (earlier) positions.
-    """
 
     def __init__(self, d_model, heads=8, dropout=0.1, relative_pos=True):
 
         super().__init__()
         if d_model % heads != 0:
-            raise AttentionError("Number of heads does not divide model dimension")
+            raise AttentionError("Cannot divide number of heads")
         self.d_model = d_model
         self.heads = heads
         s = d_model // heads
@@ -38,7 +34,6 @@ class MultiheadedAttention(nn.Module):
         b, t, e = x.size()
         h = self.heads
         #each head inspects a fraction of the embedded space
-        #head dimension
         s = e // h
         #start index of position embedding
         embedding_start = self.max_length - t
@@ -47,8 +42,6 @@ class MultiheadedAttention(nn.Module):
                 for w, x in zip(self.linears, (x,x,x))]
         if self.relative_pos:
             #apply same position embeddings across the batch
-            #Is it possible to apply positional self-attention over
-            #only half of all relative distances?
             Er  = self.Er[:, embedding_start:, :].unsqueeze(0)
             QEr = torch.matmul(queries, Er.transpose(-1,-2))
             QEr = self._mask_positions(QEr)

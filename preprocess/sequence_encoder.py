@@ -5,17 +5,7 @@ class SequenceEncoderError(Exception):
 
 class SequenceEncoder():
     """
-    Converts sequences of Midi Notes to sequences of events under the following 
-    representation:
-    - 128 NOTE-ON events (for each of the 128 MIDI pitches, starts a new note)
-    - 128 NOTE-OFF events (likewise. Ends 
-    - (1000 / t) TIME-SHIFT events (each moves the time step forward by increments of 
-      t ms up to 1 second
-    - v VELOCITY events (each one changes the velocity applied to all subsequent notes
-      until another velocity event occurs)
-
-    Includes functions to cast a sequence of Midi Notes to a numeric list of 
-    possible events and to one-hot encode a numeric sequence as a Pytorch tensor.
+    Converts sequences of Midi Notes to sequences of events
     """
 
     def __init__(self, n_time_shift_events, n_velocity_events,
@@ -30,13 +20,11 @@ class SequenceEncoder():
 
     def encode_sequences(self, sample_sequences):
         """
-        Converts each sample note sequence into an "event" sequence, a list of integers
-        0 through N-1 where N is the total number of events in the encoder's
-        representation.
+        Converts each sample note sequence into an "event" sequence
         """
         event_sequences = []
-        #count how many sequences are discarded/truncated due to length
-        short_count, long_count = 0,0
+
+        short_count, long_count = 0,0 # discarded/truncated seq due to length
         n_sequences = len(sample_sequences)
         for i in range(n_sequences):
             if not (i % self.sequences_per_update):
@@ -44,33 +32,23 @@ class SequenceEncoder():
                         format(i, n_sequences))
             event_sequence = []
             event_timestamps = []
-            #attempt at efficiency gain: only add a velocity event if it's different
-            #from current velocity...this is tricky if two notes played at the
-            #same time have different velocity
-            #current_velocity = 0
             for note in sample_sequences[i]:
                 #extract start/end time, pitch and velocity
                 t0, t1, p, v = note
                 event_timestamps.append((t0, "VELOCITY", v))
-                #if v != current_velocity:
-                #    event_timestamps.append((t0, "VELOCITY", v))
-                #    current_velocity = v
                 event_timestamps.append((t0, "NOTE_ON", p))
                 event_timestamps.append((t1, "NOTE_OFF", p))
 
             # sort events by timestamp
             event_timestamps = sorted(event_timestamps, key = lambda x: x[0])
             current_time = 0
+
             max_timeshift = self.n_time_shift_events
-            #this loop encodes timeshifts as numbers
-            #consider turning this into a function to help readability
             for timestamp in event_timestamps:
-                #capture a shift in absolute time
                 if timestamp[0] != current_time:
                     #convert to relative time and convert to number of quantized timesteps
                     timeshift = (timestamp[0] *  self.n_time_shift_events) - \
                             (current_time * self.n_time_shift_events)
-                    #this is hacky but sue me
                     timeshift = int(timeshift + .1)
                     timeshift_events = []
                     #aggregate pauses longer than one second, as necessary

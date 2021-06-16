@@ -9,14 +9,10 @@ class MusicTransformerError(Exception):
     pass
 
 class MusicTransformer(nn.Module):
-    """Generative, autoregressive transformer model. Train on a 
-    dataset of encoded musical sequences."""
-
-    def __init__(self, n_tokens, seq_length=None, d_model=64, #d_model = D = 512 in paper
-            n_heads=4, depth=2, d_feedforward=512, dropout=0.1,
+    def __init__(self, n_tokens, seq_length=None, d_model=64,
+            n_heads=8, depth=6, d_feedforward=512, dropout=0.1,
             positional_encoding=False, relative_pos=True):
         """
-        Args:
             n_tokens: number of commands/states in encoded musical sequence
             seq_length: length of (padded) input/target sequences
             d_model: dimensionality of embedded sequences
@@ -27,22 +23,20 @@ class MusicTransformer(nn.Module):
             relative_pos: (bool) if True, use relative positional embeddings
         """
         super().__init__()
-        #number of commands in an encoded musical sequence
-        self.n_tokens = n_tokens # 256 + sampling_rate + n_velocity_bins
-        #embedding layer
+        self.n_tokens = n_tokens # 413
+        # embedding layer
         self.d_model = d_model # 64
         self.embed = SequenceEmbedding(n_tokens, d_model) #413 64
-        #positional encoding layer #ENCODE
-        self.positional_encoding = positional_encoding # False
+
+        #positional encoding layer
+        self.positional_encoding = positional_encoding
         if self.positional_encoding:
-            pos = torch.zeros(5000, d_model)
+            pos = torch.zeros(5000, d_model) # 5000,64
             position = torch.arange(5000).unsqueeze(1)
             #geometric progression of wave lengths
             div_term = torch.exp(torch.arange(0.0, d_model, 2) * \
                             - (math.log(10000.0) / d_model))
-	    #even positions
             pos[0:, 0::2] = torch.sin(position * div_term)
-            #odd positions
             pos[0:, 1::2] = torch.cos(position * div_term)
             #batch dimension
             pos = pos.unsqueeze(0)
@@ -60,19 +54,16 @@ class MusicTransformer(nn.Module):
         self.norm = nn.LayerNorm(d_model)
     
     def forward(self, x, mask=None):
-        x = self.embed(x)
-        b,t,e = x.size()
+        x = self.embed(x) #(1024, 64)
+        b,t,e = x.size() # 1 64 1024
         if self.positional_encoding:
             positions = self.pos[:, :t, :]
         else:
-            positions = self.pos(torch.arange(t, 
-                device=d()))[None, :, :].expand(b, t, e)
+            positions = self.pos(torch.arange(t, device=d()))[None, :, :].expand(b, t, e)
         x = x + positions
-        #another dropout layer here?
-        #pass input batch and mask through layers
+
         for layer in self.layers:
-            x  = layer(x, mask)
-        #one last normalization for good measure
+            x  = layer(x, mask) #decoder
         z = self.norm(x)
         return self.to_scores(z)
 
@@ -94,10 +85,6 @@ class DecoderLayer(nn.Module):
 
 
     def forward(self, x, mask):
-        #perform masked attention on input
-        #masked so queries cannot attend to subsequent keys
-        #Pass through sublayers of attention and feedforward.
-        #Apply dropout to sublayer output, add it to input, and norm.
         attn = self.self_attn(x, mask)
         x = x + self.dropout1(attn)
         x = self.norm1(x)
@@ -120,17 +107,10 @@ class PositionwiseFeedForward(nn.Module):
         return self.w_2(self.dropout(F.relu(self.w_1(x))))
 
 class SequenceEmbedding(nn.Module):
-    """
-    Standard embedding, scaled by the sqrt of model's hidden state size
-    """
-    def __init__(self, vocab_size, model_size):
+    def __init__(self, vocab_size, model_size): # 413 64
         super().__init__()
         self.d_model = model_size
         self.emb = nn.Embedding(vocab_size, model_size)
-        # num_embeddings: size of the dictionary of embeddings = 413
-        # embedding_dim: size of each embedding vector = 64
 
     def forward(self, x):
-        # print("check  ", self.emb(x) * math.sqrt(self.d_model))
-        a = self.emb(x) * math.sqrt(self.d_model)
         return self.emb(x) * math.sqrt(self.d_model)

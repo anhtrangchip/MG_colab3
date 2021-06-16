@@ -50,6 +50,10 @@ if args.checkpoint is not None:
 else:
     print(f"NOT FOUND checkpoint")
 
+if config.condition_file is not None:
+    inputs = np.array([encode_midi('dataset/midi/BENABD10.mid')[:500]])
+
+
 print(config.condition_file)
 if config.condition_file is not None:
     inputs = np.array([encode_midi('dataset/midi/BENABD10.mid')[:500]])
